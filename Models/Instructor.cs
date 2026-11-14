@@ -7,10 +7,12 @@ namespace EF_03.Models
     internal class Instructor
     {
         public int Id { get; set; }
-        public string FillName { get; set; }
-        public string Email { get; set; }
-        public string Bio { get; set; }
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Bio { get; set; } = null!;
         public DateOnly JoiningDate { get; set; }
+
+        public ICollection<Course> Courses { get; set; } = new HashSet<Course>();
 
     }
 }
