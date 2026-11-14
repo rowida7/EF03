@@ -1,7 +1,14 @@
 ﻿using EF_03.Context;
-using EF_03.Models;
 using EF_03.Enums;
+using EF_03.Models;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Drawing;
+using System.Net.NetworkInformation;
 using System.Security.Policy;
+using System.Threading.Channels;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using static System.Net.WebRequestMethods;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace EF_03
 {
     internal class Program
@@ -84,7 +91,7 @@ namespace EF_03
             var student1 = context.Students.FirstOrDefault();
             var course1 = context.Courses.FirstOrDefault();
 
-            if (student1 is not null && course1 is not null)
+            if (student1 is not null && course1 is not null && course1.IsPublished == true)
             {
                 StudentCourses studentCourses = new StudentCourses()
                 {
@@ -105,9 +112,107 @@ namespace EF_03
             }
             #endregion
 
+            #region Read
+            //Find a course: Get a course by Id using Find, then
+            //by title using FirstOrDefault.Print "not found" when the result is null.
+            var course2 = context.Courses.Find(7);
+            if (course2 is not null)
+                Console.WriteLine($"Course Found:{course2.Title}");
+            else
+                Console.WriteLine("Not Found");
+
+            var course3 = context.Courses.FirstOrDefault(c=> c.Title == ".Net");
+            if (course3 is not null)
+                Console.WriteLine($"Course Found:{course3.Title}");
+            else
+                Console.WriteLine("Not Found");
 
 
+            //Filter courses: Courses priced between two values,
+            //ordered by price descending. Print only the title, level and price.
+            var courses = context.Courses.Where(c => c.Price > 500 && c.Price < 5000);
+            foreach (var course in courses) 
+            {
+                Console.WriteLine($"Title: {course.Title}, Level: {(Level)course.Level}, Price: {course.Price}");
+            }
 
+            //Sub - categories: Print the direct sub-categories of a given category,
+            //then print the top - level categories.
+            var category0 = context.Categories.FirstOrDefault(c => c.Name == "Programming");
+            if(category0 is not null)
+            {
+                var subCategories = context.Categories.Where(sub => sub.SuperCategoryId == category0.Id).ToList();
+                Console.WriteLine("---Sub Categories---");
+                foreach (var sub in subCategories)
+                {
+                    Console.WriteLine(sub.Name);
+                }
+            }
+            var topCategories = context.Categories.Where(top => top.SuperCategoryId == null).ToList();
+            Console.WriteLine("---Top Categories---");
+            foreach (var cat in topCategories)
+            {
+                Console.WriteLine(cat.Name);
+            }
+
+            //Course roster: Print how many students are enrolled in a course,
+            //then their names. Do it without joins: get the student Ids from the
+            //enrollments first, then get the students with Contains.
+            var course4 = context.Courses.FirstOrDefault(c => c.Title == ".Net");
+            var StudentIds = context.StudentCourses.Where(sc => sc.CourseId == course4.Id)
+                                    .Select(sc => sc.StudentId).ToList();
+            var studentss = context.Students.Where(s => StudentIds.Contains(s.Id)).ToList();
+            Console.WriteLine($"Number of enrolled students: {studentss.Count}");
+
+            foreach (var student in studentss)
+            {
+                Console.WriteLine(student.FullName);
+            }
+            #endregion
+
+            #region Update
+            //Change a price: Load a course, change its price, and save.
+            var crs = context.Courses.FirstOrDefault();
+            if(crs is not null)
+            {
+                crs.Price = 15930;
+                context.SaveChanges();
+                Console.WriteLine("Price updated successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Course not found.");
+            }
+            //Update progress: Find the enrollment by its composite key and set the new progress.
+            //At 100 set the status to Completed.Reject values outside 0–100.
+            var enrollment = context.StudentCourses.Find(1, 4);
+            decimal newProgress = 100;
+            if(enrollment is not null)
+            {
+                enrollment.ProgressPercentage = newProgress;
+                if(enrollment.ProgressPercentage == 100)
+                {
+                    enrollment.Status = Status.Completed;
+                }
+                context.SaveChanges();
+                Console.WriteLine("Progress updated successfully.");
+            }else
+            {
+                Console.WriteLine("Enrollment not found.");
+            }
+
+            //Publish a course: Set the published flag and the published date.
+            var course5 = context.Courses.FirstOrDefault();
+            if(course5 is not null)
+            {
+                course5.IsPublished = true;
+                context.SaveChanges();
+                Console.WriteLine("Course published successfully.");
+            }
+            #endregion
+
+            #region Delete
+            #endregion
 
         }
     }
