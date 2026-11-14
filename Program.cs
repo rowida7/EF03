@@ -1,6 +1,8 @@
 ﻿using EF_03.Context;
 using EF_03.Enums;
 using EF_03.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Drawing;
 using System.Net.NetworkInformation;
@@ -150,9 +152,9 @@ namespace EF_03
             }
             var topCategories = context.Categories.Where(top => top.SuperCategoryId == null).ToList();
             Console.WriteLine("---Top Categories---");
-            foreach (var cat in topCategories)
+            foreach (var catt in topCategories)
             {
-                Console.WriteLine(cat.Name);
+                Console.WriteLine(catt.Name);
             }
 
             //Course roster: Print how many students are enrolled in a course,
@@ -212,6 +214,43 @@ namespace EF_03
             #endregion
 
             #region Delete
+            //Unenroll: Delete an enrollment using its composite key.
+            var enrollment1 = context.StudentCourses.Find(1, 4);
+            context.StudentCourses.Remove(enrollment1);
+            context.SaveChanges();
+            //Delete a category: First try to remove a category that still has sub-categories
+            var cat = context.Categories.FirstOrDefault(c => c.SuperCategoryId == null);
+
+            //and catch the DbUpdateException, then print its message.After that, write a safe
+            //version that checks for sub - categories before deleting.
+            if (cat is not null)
+            {
+                try
+                {
+                    context.Categories.Remove(cat);
+                    context.SaveChanges();
+                }
+                catch (DbUpdateException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            //Delete a course: Delete a course that has enrollments.Print the number of
+            //its enrollments before and after, and explain in a comment why they were removed.
+            var crss = context.Courses.FirstOrDefault();
+            if(crss is not null)
+            {
+                int before = context.StudentCourses.Count(sc => sc.CourseId == crss.Id);
+                Console.WriteLine($"Enrollments before deletion: {before}");
+
+                context.Courses.Remove(crss);
+                context.SaveChanges();
+
+                int after = context.StudentCourses.Count(sc => sc.CourseId == crss.Id);
+                Console.WriteLine($"Enrollments after deletion: {after}");
+                // it's removed because the OnDelete Behaviour is cascade so whenever
+                // the course is removed it's enrollment records are removed too.
+            }
             #endregion
 
         }
